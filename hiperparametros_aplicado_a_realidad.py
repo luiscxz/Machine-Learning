@@ -77,8 +77,25 @@ parametros_busqueda_svm = {
     "degree": [1,2,3,4],
     "gamma": [0.1,0.5,1.,10.],
     "kernel": ["poly", "rbf"]
-}
-##### Aqui voy (continuar aqui...)
+} # Esto creara 8  modelos ya que rbf solo admite gama y poly solo admite los grados
+
+#procedemos a ajustar los 8 modelos, incluye la validación cruzada
+svm_grid = GridSearchCV(estimator=estimador_svm, 
+                    param_grid=parametros_busqueda_svm,
+                    scoring="f1_micro", n_jobs=-1)
+# procedemos a entrenar el modelo
+svm_grid.fit(var_independientes, var_objetivo['Species'])
+# visualizando el mejor estimador
+print(svm_grid.best_estimator_)
+#%% Busqueda aleatoria en svm
+# Ajustando el modelo
+svm_random = RandomizedSearchCV(estimator=estimador_svm, 
+                    param_distributions=parametros_busqueda_svm,
+                   scoring="f1_micro", n_jobs=-1, n_iter=10)
+# entrenando el modelo
+svm_random.fit(var_independientes, var_objetivo['Species'])
+# mostrando el mejor estimador
+print(svm_random.best_estimator_)
 
 #%% funciones para Evalución del modelo mediante validación cruzada
 # y obtener los resultados
@@ -117,6 +134,12 @@ resultados["knn_gridsearch"]= evaluar_modelo(knn_grid.best_estimator_,
 resultados["knn_randomizedsearch"] = evaluar_modelo(knn_random.best_estimator_,
                                                     var_independientes,
                                                     var_objetivo['Species'])
+resultados["svm_gridsearch"] = evaluar_modelo(svm_grid.best_estimator_,
+                                             var_independientes,
+                                             var_objetivo['Species'])
+resultados["svm_randomizedsearch"] = evaluar_modelo(svm_random.best_estimator_,
+                                             var_independientes,
+                                             var_objetivo['Species'])
 #%% Procedemos a hacer busqueda por malla
 # procedemos a ver los resultados
 resultados_df= ver_resultados(resultados)
