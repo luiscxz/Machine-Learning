@@ -37,13 +37,13 @@ visualizer = KElbowVisualizer(modelos, k=(1,12))
 visualizer.fit(file_normalizado)
 # le pido que haga la gráfica
 visualizer.show()
-#%% Dado que identificamos el mejor mejor clouster en k = 5
+#%% Dado que identificamos el mejor mejor clouster en k = 4
 # procedemos a implementar el modelo 
-k_medias = KMeans(n_clusters = 5 ,init='k-means++', n_init = 10 ,max_iter=300, 
+k_medias = KMeans(n_clusters = 4 ,init='k-means++', n_init = 10 ,max_iter=300, 
                         tol=0.0001,  random_state= 111  , algorithm='elkan')
 # le pasamos los datos al modelo
 k_medias.fit(file_normalizado)
-# preguntando a que clouster pertenece cada vector
+# preguntando a que clouster pertenece cada vector, etiquetas
 k_medias.labels_
 # viendo los centros de cada clouster
 k_medias.cluster_centers_
@@ -55,5 +55,5 @@ file['Etiqueta'] = k_medias.labels_.astype(str)
 variable discreta
 """
 fig = px.scatter_3d(file, x='Edad', y='Puntuacion_gasto', z='Ingreso_anual',
-              color='Etiquetas')
+              color='Etiqueta')
 plot(fig)
