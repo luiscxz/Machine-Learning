@@ -10,6 +10,7 @@ diferentes dimensiones, ejemplo kg, cm, N, Mpa...
 import os
 import pandas as pd
 from plotnine import *
+import numpy as np
 # accediendo a la ruta donde esta los datos
 os.chdir('E:\\4. repositorios github\\ML_Py_23\\data')
 # leyendo tabla de cancer de mama
@@ -50,5 +51,21 @@ df_comp_principales = df_comp_principales.assign(diagnosis =file['diagnosis'].as
  ggplot(df_comp_principales) +
     geom_point(mapping = aes(x="Comp1",y="Comp2",color = "diagnosis"),alpha = 0.5)
 )
-
-
+#%% 
+""" Dado que existen la misma cantidad de componentes principales como columnas
+del dataframe, procedemos a obtener todas las componentes principales del dataframe
+"""
+modelo_pca = PCA() # calcula todas las componentes
+componentes_principales = modelo_pca.fit_transform(var_ind_escaladas)
+# calculando que porcentaje de varianza conservó cada componente.
+np.cumsum(modelo_pca.explained_variance_ratio_)
+# creando tabla de muestra las componentes y porcentaje de varianza acumulado
+# df.shape[1] muestra la cantidad de columnas del dataframe
+varianza_conservada = pd.DataFrame({
+    'numero_componentes' : list(range(1,componentes_principales.shape[1]+1)),
+    'varianza_acumulada' : np.cumsum(modelo_pca.explained_variance_ratio_)})
+# procedemos a realizar la grafica de codos
+(ggplot(data = varianza_conservada) +
+     geom_point(mapping = aes(x="numero_componentes",y="varianza_acumulada")) +
+     geom_line(mapping = aes(x="numero_componentes",y="varianza_acumulada"))
+)
