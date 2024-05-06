@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 # accediendo a la ruta donde estan los archivos
 os.chdir('E:\\4. repositorios github\\ML_Py_23\\data')
 # leyendo información
-pixeles = pd.read_csv('mnist_pixeles.csv')
-labels = pd.read_csv('mnist_clases.csv')
+pixeles = pd.read_csv('mnist_pixeles.csv',header=None)
+labels = pd.read_csv('mnist_clases.csv',header=None)
 #%% Procedemos a observar que numero es el que esta en la primera fila de la tabla pixeles
 # y lo convertimos a array
 primer_digito = pixeles.iloc[0].to_numpy()
@@ -70,10 +70,23 @@ busqueda = RandomizedSearchCV(estimator=clf,
 # procedemos a pasarle la tabla de componentes principales como variables independientes
  y la tabla labels como variable objetivo
 """
-busqueda.fit(X=pixeles_pca, y=labels)
+busqueda.fit(X=pixeles_pca, y=labels.values.ravel())
 # consultando cual fue la puntucion f1
 busqueda.best_score_
 # cosultando que parametros dan esa puntuación
 mejores_parametros = busqueda.best_params_
 #%% corremos el modelo con los mejores parametros encontrados
-mejores_params = {'n_neighbors': 4, 'p': 2, 'weights': 'distance'}
+mejores_params = {'n_neighbors': 3, 'p': 2, 'weights': 'distance'}
+# volvemos a correr el modelo con los mejores parámetros
+mejor_knn = KNeighborsClassifier(**mejores_params) ## el ** indica que los para
+#metros de entrada se la pasan en un diccionario
+# entreno el modelo
+mejor_knn.fit(pixeles_pca, labels.values.ravel())
+# %% NOs llega un dato nuevo
+"""Supongamos que nos llega un dato nuevo y necesitamos predecir que numero es
+para ello, dado que ya se realizó analisis de componentes principales, lo que debemos
+hacer es transformar los nuevos datos, de la siguiente forma:
+"""
+nuevo_numero = pd.read_csv('mi_numero.csv',header = None)
+# transformando los datos
+nuevo_pca = modelo_pca.transform(nuevo_numero)
