@@ -76,7 +76,7 @@ busqueda.best_score_
 # cosultando que parametros dan esa puntuación
 mejores_parametros = busqueda.best_params_
 #%% corremos el modelo con los mejores parametros encontrados
-mejores_params = {'n_neighbors': 3, 'p': 2, 'weights': 'distance'}
+mejores_params = {'n_neighbors': 5, 'p': 2, 'weights': 'distance'}
 # volvemos a correr el modelo con los mejores parámetros
 mejor_knn = KNeighborsClassifier(**mejores_params) ## el ** indica que los para
 #metros de entrada se la pasan en un diccionario
@@ -90,3 +90,24 @@ hacer es transformar los nuevos datos, de la siguiente forma:
 nuevo_numero = pd.read_csv('mi_numero.csv',header = None)
 # transformando los datos
 nuevo_pca = modelo_pca.transform(nuevo_numero)
+# procedo a predecir los numeros
+mejor_knn.predict(nuevo_pca)
+# procedemos a verificar que los numero predichos si corresponda
+veri_1 = nuevo_numero.iloc[0].to_numpy().reshape(28,28)
+veri_2 = nuevo_numero.iloc[1].to_numpy().reshape(28,28)
+veri_3 = nuevo_numero.iloc[2].to_numpy().reshape(28,28)
+# graficando
+plt.imshow(veri_3,cmap="Greys")
+#%% Procedemos a guardar el modelo
+import pickle
+""" 
+abriendo archivo modelo_pca.pickle en modo de escritura binara "wb" y 
+Serializando el objeto modelo_pca y escribiendo en el archivo abierto.
+"""
+ruta = 'D:\\3. Cursos\\3. machine learning\\curso machine learning\\codigos realizados en clase\\modelos_guardados'
+# Guardando los datos del modelo de componentes prinicipales
+with open(ruta+"\\modelo_pca.pickle", "wb") as file:
+    pickle.dump(modelo_pca , file)
+# procedemos a guardar el mejor modelo knn
+with open (ruta+"\\mejor_knn.pickle", "wb") as file:
+    pickle.dump(mejor_knn, file)
