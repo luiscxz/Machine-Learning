@@ -177,6 +177,7 @@ score_bagging_svm = cross_validate(estimador_bagging_svm,
 # obteniendo puntaje
 score_bagging_svm
 #%% procedemos a ver el puntaje que obtiene al usar 100 KNeighborsClassifier
+# usando el mejor estimiador encontrado con hiperparámetros
 estimador_bagging_knn = BaggingClassifier(n_estimators=100,
                                           estimator=KNeighborsClassifier())
 score_bagging_knn = cross_validate(estimador_bagging_knn,
@@ -185,3 +186,60 @@ score_bagging_knn = cross_validate(estimador_bagging_knn,
                                    scoring="f1_micro", cv=30)["test_score"].mean()
 
 score_bagging_knn
+#%% Procedemos a ver el puntaje de ensambalado usando el mejor estimador 
+# calculado con hiperparámetros
+estimador_bagging_mejor_arbol = BaggingClassifier(n_estimators=100,
+                                           estimator=arbol_grid.best_estimator_)
+score_bagging_mejor_arbol = cross_validate(estimador_bagging_mejor_arbol,
+                                           X=independientes,
+                                           y=objetivo,
+                                           scoring="f1_micro", cv=30)["test_score"].mean()
+
+score_bagging_mejor_arbol
+#%% Procedemos a hacer un ensamblado de arboles aleatorios, es casi un bosque aleatorio
+estimador_bagging_arbol_aleatorio = BaggingClassifier(n_estimators=500,
+                                          estimator=tree.ExtraTreeClassifier())
+
+score_bagging_arbol_aleatorio = cross_validate(estimador_bagging_arbol_aleatorio,
+                                           X=independientes,
+                                           y=objetivo.values.ravel(),
+                                           scoring="f1_micro", cv=30)["test_score"].mean()
+
+score_bagging_arbol_aleatorio
+#%% Procedemos a probar el método de ensablado íterativo Adaboost
+from sklearn.ensemble import AdaBoostClassifier
+estimador_adaboost = AdaBoostClassifier(n_estimators=100,algorithm='SAMME')
+
+score_adaboost = cross_validate(estimador_adaboost,
+                                X=independientes,
+                                y=objetivo, 
+                                scoring="f1_micro", cv=30)["test_score"].mean()
+
+score_adaboost
+#%% Procedemos a utilizar el metodo de gradiente, con perdida de logaritmo,
+# lo que queremos hacer es minimizar la pérdida de información 
+from sklearn.ensemble import GradientBoostingClassifier
+
+estimador_gradientboost = GradientBoostingClassifier(n_estimators=100, loss='log_loss')
+
+score_gradientboost = cross_validate(estimador_gradientboost,
+                                     X=independientes,
+                                     y=objetivo, 
+                                     scoring="f1_micro", cv=30)["test_score"].mean()
+score_gradientboost
+#%% Ahora procedemos a usar arbol aleatorio
+from sklearn.ensemble import RandomForestClassifier
+
+estimador_randomforest = RandomForestClassifier(n_estimators=100)
+
+score_randomforest = cross_validate(estimador_randomforest,
+                                    X=independientes,
+                                    y=objetivo, 
+                                    scoring="f1_micro", cv=30)["test_score"].mean()
+
+score_randomforest
+#%%
+""" Nota: para mejorar resultados en modelos ensamblados se debe aumentar el 
+n_estimators, el cv lo debo usar de 50 a 60 para cumplir con el teorema del límite
+central
+"""

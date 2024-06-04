@@ -126,7 +126,7 @@ columnas_categoricas['codificacion_ordinal'] = columnas_categoricas['col_ordinal
     'muy bien':5, 'bien':4, 'regular':3, 'mal':2, 'muy mal':1})
 #%% Variables nominales 
 # Preparando OneHotEncoder
-hot_codificador = preprocessing.OneHotEncoder(sparse=False)
+hot_codificador = preprocessing.OneHotEncoder(sparse_output=False)
 """
 OneHotEncoder no recibe una serie, recibe un array 2D, por lo cual, la serie (1D)
 debe cambiarse a  2d
