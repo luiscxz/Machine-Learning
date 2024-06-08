@@ -25,7 +25,7 @@ target = pd.DataFrame(iris.target,
 #%% Exploración de datos
 # Buscando filas con valores faltantes en los datos
 FilasNull = feature[feature.isnull().any(axis=1)]
-# verificando el balance de nlas clases
+# verificando el balance de las clases
 grupo = target.groupby(by=['target'],dropna = False).agg(
     CantidadRegistros =('target','count'),
     porcentaje = ('target', lambda x: (len(x)/len(target))*100)
@@ -35,6 +35,7 @@ Dado que :
     setosa tiene 50 registros 
     versicolor tiene 50 registros
     virginica tiene 50 registros
+    Se concluye que las clases estan balanceadas
 """
 target = target['target']
 # graficando diagrama de cajas y bigotes 
@@ -57,7 +58,7 @@ boxplotChl.tick_params(axis='both', direction='out', length=6)  # Dirección y l
 boxplotChl.xaxis.set_tick_params(width=2)  # Grosor de los ticks en el eje X
 boxplotChl.yaxis.set_tick_params(width=2)  # Grosor de los ticks en el eje Y
 """ Con el diagrama de cajas se pudo observar los siguiente:
-    Petal length cm: es la columna con mas varición en los datos 1cm hata 7cm
+    Petal length cm: es la columna con más variación en los datos 1cm hasta 7cm
 """
 #%% Definición de hiper parámetros
 # Estableciendo parámetros para arbol 
@@ -121,14 +122,14 @@ cada combinación, entrena el modelo.
 """
 arbol_Random = RandomizedSearchCV(estimator=estimador_arbol, 
                     param_distributions=parametros_arbol,
-                    scoring="roc_auc", n_jobs=-1)
+                    scoring="f1_micro", n_jobs=-1)
 arbol_grid = GridSearchCV(estimator=estimador_arbol, 
                     param_grid=parametros_arbol,
-                    scoring="roc_auc", n_jobs=-1)
+                    scoring="f1_micro", n_jobs=-1)
 #%% Ajustando los modelos
 """
 Se toma el conjunto de datos (independientes y objetivo), se realiza la busqueda
-aleatoria de hiperparámetros, y se entrenan y evaluan los modelos con cada combinación
+aleatoria y por malla  de hiperparámetros, y se entrenan y evaluan los modelos con cada combinación
 de hyperparámetros y se selecciona la mejor combinación de hiperparámetros basad
  en el F1 score micro
 """
@@ -150,10 +151,12 @@ resultados_df= ver_resultados(resultados)
 # organizando resultados.
 resultados_df = resultados_df.sort_values(by=['test_score', 'fit_time'], ascending=[False, True])
 #%% usando el mejor modelo encontrado
-# obteniendo los parametros del modelo que obtuvo mejor puntación
-arbol_grid.best_estimator_
+best_model=arbol_grid.best_estimator_
+# Mostrar el mejor modelo y sus hiperparámetros
+print("Mejor modelo:", best_model)
+print("Mejores hiperparámetros:", arbol_grid.best_params_)
 #corremos el modelo con los mejores parametros encontrados
-mejores_params = { "max_depth": 3, "criterion": 'gini', "class_weight": None}
+mejores_params = {'class_weight': None, 'criterion': 'gini', 'max_depth': 4}
 mejor_arbol = tree.DecisionTreeClassifier(**mejores_params)
 # entrenando el modelo
 mejor_arbol.fit(feature, target)
