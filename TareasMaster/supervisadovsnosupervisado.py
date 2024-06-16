@@ -24,7 +24,7 @@ plt.style.use('ggplot')
 #%% exploración de datos
 # obteniendo información del dataframe (columnas, cantidad de datos no nullos y tipo de dato)
 data.info()
-# obteniendo resulen estadístico del dataframe
+# obteniendo resumen estadístico del dataframe
 resumen = data.describe()
 #%% Graficando las clases y analizando valanceo de las clases
 """
@@ -72,7 +72,7 @@ knn.fit(x_train,y_train)
 prediction = knn.predict(x_test)
 # obteniendo precisión del modelo 
 print('With KNN (K=3) accuracy is: ',knn.score(x_test,y_test)) 
-#%% Procedemos a buscar el valor de k que mayor presición da
+#%% Procedemos a buscar el valor de k que mayor precisión da
 neig = np.arange(1, 25)
 train_accuracy = []
 test_accuracy = []
@@ -100,11 +100,10 @@ plt.savefig('graph.png')
 plt.show()
 print("Best accuracy is {} with K = {}".format(np.max(test_accuracy),1+test_accuracy.index(np.max(test_accuracy))))
 #%%
-""" Utilizando solo dos caracteristica para la regresión:
+""" Utilizando solo dos características para la regresión:
     feature = pelvic_incidence
     target = sacral_slope
-    En problemas de regesión e valor objetivo es una variable que varia continuamente
-    
+    En problemas de regresión e valor objetivo es una variable que varía continuamente
 """
 # Seleccionando solo las filas con donde class == Abnormal
 data1 = data[data['class']=='Abnormal']
@@ -120,7 +119,7 @@ plt.show()
 from sklearn.linear_model import LinearRegression
 # definiendo modelo
 reg = LinearRegression()
-# creando array que va desde el valor mínimo de x  hasta el maximo de x
+# creando array que va desde el valor mínimo de x  hasta el máximo de x
 predict_space = np.linspace(min(x), max(x)).reshape(-1,1)
 # entrenando el modelo 
 reg.fit(x,y)
@@ -128,7 +127,7 @@ reg.fit(x,y)
 predicted = reg.predict(predict_space)
 # mostrando coeficiente de determinación R2, El R² score mide qué tan bien el modelo de regresión se ajusta a los datos.
 print('R^2 score: ',reg.score(x, y))
-# graficando linea de regresión y scatter con datos originales
+# graficando línea de regresión y scatter con datos originales
 plt.plot(predict_space, predicted, color='black', linewidth=3)
 plt.scatter(x=x,y=y)
 plt.xlabel('pelvic_incidence')
@@ -143,7 +142,7 @@ from sklearn.model_selection import train_test_split
 
 # dividiendo datos en entrenamiento y prueba
 x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=2, test_size=0.3)
-# creando proceso que normaliza los datos y luego entrena el modelo de regresion Ridge
+# creando proceso que normaliza los datos y luego entrena el modelo de regresión Ridge
 ridge = make_pipeline(StandardScaler(with_mean=False), Ridge(alpha=0.1))
 ridge.fit(x_train, y_train)
 # procedemos a realizar predicciones
@@ -196,8 +195,24 @@ Confusion matrix:
 """
 print('Classification report: \n',classification_report(y_test,y_pred))
 # Visualizando  matriz de confusión
-sns.heatmap(cm,annot=True,fmt="d") 
-plt.show()
+plt.figure(figsize=(10, 12))  
+heatmap = sns.heatmap(
+    cm,  
+    cmap='inferno', 
+    annot=True, 
+    fmt='.2f',
+    cbar=True,
+    square=True,
+    annot_kws={'size': 12, 'fontweight': 'bold', 'fontfamily': 'Arial'},  
+    linewidth=.5,
+    linecolor='none'
+)
+# Ajustar las etiquetas del eje x para que sean más legibles
+plt.xticks(fontsize=12, fontweight='bold', fontfamily='Arial')
+plt.yticks(fontsize=12, fontweight='bold', fontfamily='Arial')
+#nombres de ejes
+plt.title('Matriz de confusión', fontname='Arial', fontweight='bold',fontsize=17)
+
 #%% Curva ROC
 """
 ROC es la curva característica de operación del receptor.
@@ -219,10 +234,10 @@ data['class_binary'] = [1 if i == 'Abnormal' else 0 for i in data.loc[:,'class']
 x,y = data.loc[:,(data.columns != 'class') & (data.columns != 'class_binary')], data.loc[:,'class_binary']
 # separando en entrenamiento y prueba
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.3, random_state=42)
-# creando modelo de regresión logistica y entrenandolo
+# creando modelo de regresión logística y entrenándolo
 logreg = LogisticRegression()
 logreg.fit(x_train,y_train)
-# obteniendo predicciones en terminos de probabilidad
+# obteniendo predicciones en términos de probabilidad
 y_pred_prob = logreg.predict_proba(x_test)[:,1]
 """
 Calculando curva ROC:
@@ -232,7 +247,7 @@ Calculando curva ROC:
     utilizados para calcular las tasas de falsos positivos y verdaderos positivos
 """
 fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
-# graficando surva ROC
+# graficando curva ROC
 plt.plot([0, 1], [0, 1], 'k--')
 plt.plot(fpr, tpr)
 plt.xlabel('False Positive Rate')
@@ -249,7 +264,7 @@ knn_cv.fit(x,y)# Fit
 # Print hyperparameter
 print("Tuned hyperparameter k: {}".format(knn_cv.best_params_)) 
 print("Best score: {}".format(knn_cv.best_score_))
-#%% Aplicando validación cruzada a regresión logistica 
+#%% Aplicando validación cruzada a regresión logística 
 """
 Otro ejemplo de búsqueda en cuadrícula con 2 hiperparámetros
 
@@ -263,7 +278,7 @@ El segundo hiperparámetro es penalización (función de pérdida): l1 (Lasso) o
 param_grid = {'C': np.logspace(-3, 3, 7), 'penalty': ['l1', 'l2'], 'solver': ['liblinear']}
 # dividiendo en entrenamiento y prueba
 x_train, x_test, y_train, y_test = train_test_split(x,y,test_size = 0.3,random_state = 12)
-# creando modelo y haciendo busqueda por malla
+# creando modelo y haciendo búsqueda por malla
 logreg = LogisticRegression()
 logreg_cv = GridSearchCV(logreg,param_grid,cv=3)
 # ajustando el modelo
@@ -274,16 +289,16 @@ print("Best Accuracy: {}".format(logreg_cv.best_score_))
 #%% Ejemplo de preprocesamiento
 # leyendo los datos
 data = pd.read_csv('column_2C_weka.csv')
-# codificando variables categoricas a dummy
+# codificando variables categóricas a dummy
 df = pd.get_dummies(data,dtype=int)
 # Eliminando la columna Class_Normal
 df.drop("class_Normal",axis = 1, inplace = True) 
 df.head(10)
-#%%  Uso de maquina de soporte vectorial y
+#%%  Uso de máquina de soporte vectorial y
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-"""creando lista que contiene los pasos que seguira la pepline.
+"""creando lista que contiene los pasos que seguirá la pipeline.
 1) Estandariza los datos
 2) entrena el modelo svc
 """
@@ -295,13 +310,13 @@ parameters = {'SVM__C':[1, 10, 100],
               'SVM__gamma':[0.1, 0.01]}
 # dividiendo en entrenamiento en prueba
 x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.2,random_state = 1)
-# Realizando busqueda por malla
+# Realizando búsqueda por malla
 cv = GridSearchCV(pipeline,param_grid=parameters,cv=3)
 # entrenando el modelo
 cv.fit(x_train,y_train)
 # obteniendo predicciones
 y_pred = cv.predict(x_test)
-# Obteniendo puntuación Acurracy y mejores parametros del modelo
+# Obteniendo puntuación Acurracy y mejores parámetros del modelo
 print("Accuracy: {}".format(cv.score(x_test, y_test)))
 print("Tuned Model Parameters: {}".format(cv.best_params_))
 #%% Aprendizaje no supervisado
@@ -323,7 +338,7 @@ plt.scatter(data['pelvic_radius'],data['degree_spondylolisthesis'])
 plt.xlabel('pelvic_radius')
 plt.ylabel('degree_spondylolisthesis')
 plt.show()
-#%% creando modelo de clusterización Kneans con dos clusteres
+#%% creando modelo de clusterización Kmeans con dos clústeres
 data2 = data.loc[:,['degree_spondylolisthesis','pelvic_radius']]
 from sklearn.cluster import KMeans
 kmeans = KMeans(n_clusters = 2)
@@ -339,8 +354,8 @@ plt.show()
 df = pd.DataFrame({'labels':labels,"class":data['class']})
 ct = pd.crosstab(df['labels'],df['class'])
 print(ct)
-#%% Realizando análisis de inercia para determinar el numero óptimo de clusteres
-# creando array vacio con capacidad de 8 elementos
+#%% Realizando análisis de inercia para determinar el número óptimo de clústeres
+# creando array vacío con capacidad de 8 elementos
 inertia_list = np.empty(8)
 for i in range(1,8):
     kmeans = KMeans(n_clusters=i)
@@ -353,16 +368,16 @@ plt.show()
 """
 este código ayuda a identificar visualmente el codo 
 (el punto donde la tasa de disminución de la inercia disminuye significativamente) 
-en el gráfico de inercia, lo que puede sugerir el número óptimo de clusters 
+en el gráfico de inercia, lo que puede sugerir el número óptimo de clústeres 
 para usar en el algoritmo KMeans en función de la estructura de los datos.
 """
 #%% Procedemos a estandarizar los datos
 data3 = data.drop('class',axis = 1)
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-# creando escalador estandar
+# creando escalador estándar
 scalar = StandardScaler()
-# creando modelo con 2 clusteres
+# creando modelo con 2 clústeres
 kmeans = KMeans(n_clusters = 2)
 # creando pipelinea 
 pipe = make_pipeline(scalar,kmeans)
@@ -376,9 +391,9 @@ df = pd.DataFrame({'labels':labels,"class":data['class']})
 #entre las dos variables 'labels' y 'class' en términos de su distribución conjunta
 ct = pd.crosstab(df['labels'],df['class'])
 print(ct)
-#%% Agrupamiento jerarquico
+#%% Agrupamiento jerárquico
 from scipy.cluster.hierarchy import linkage,dendrogram
-# realizando agrupamiento jerarquico por el metodo simple, usando las lineas 200:220
+# realizando agrupamiento jerárquico por el método simple, usando las líneas 200:220
 merg = linkage(data3.iloc[200:220,:],method = 'single')
 # visualizando dendrograma
 dendrogram(merg, leaf_rotation = 90, leaf_font_size = 6)
@@ -397,7 +412,7 @@ plt.scatter(x,y,c = color_list )
 plt.xlabel('pelvic_radius')
 plt.xlabel('degree_spondylolisthesis')
 plt.show()
-#%% Análisis de componentes prinicipales
+#%% Análisis de componentes principales
 from sklearn.decomposition import PCA
 # creando modelo 
 model = PCA()
