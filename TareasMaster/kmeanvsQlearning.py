@@ -5,7 +5,7 @@ Created on Thu Jun 13 13:06:13 2024
 @author: Luis A. García
 """
 
-# importando librerias necesarias
+# importando librerías necesarias
 import pandas as pd
 import numpy as np
 from sklearn.datasets import load_iris
@@ -17,7 +17,7 @@ feature = pd.DataFrame(iris.data,
                        columns=iris.feature_names)
 #Estandarización de los datos
 from sklearn.preprocessing import StandardScaler
-# definiendo escalador estandar
+# definiendo escalador estándar
 scaler = StandardScaler()
 # escalando los datos
 iris_scaled = scaler.fit_transform(feature)
@@ -29,7 +29,7 @@ iris_scaled = pd.DataFrame(iris_scaled,
 from sklearn.cluster import KMeans
 kmeans = KMeans(n_clusters=3, random_state=42)
 kmeans.fit(iris_scaled)
-# generando grafic
+# generando gráfica
 plt.figure(figsize=(8,6))
 plt.scatter(iris_scaled['sepal length (cm)'], iris_scaled['sepal width (cm)'], c=kmeans.labels_, cmap='viridis',
 marker='o', edgecolor='k')
@@ -69,11 +69,11 @@ EPISODES = 2000
 SHOW_EVERY = 500
 # estableciendo tasa de exploración inicial
 epsilon = 1 
-# estableciendo episodio desde el cual se empieza a reducir el valor de epsilon
+# estableciendo episodio desde el cual se empieza a reducir el valor de épsilon
 START_EPSILON_DECAYING = 1
-# estableciendo episodio donde se detendra la reducción de epsilon
+# estableciendo episodio donde se detendrá la reducción de épsilon
 END_EPSILON_DECAYING = EPISODES // 2
-# calculando la cantidad por la cual se reducirá epsilon en cada episodio.
+# calculando la cantidad por la cual se reducirá epsilon en cada épisodio.
 epsilon_decay_value = epsilon / (END_EPSILON_DECAYING -START_EPSILON_DECAYING)
 #%%
 """
@@ -89,7 +89,7 @@ discretizado y el espacio de acciones del entorno
 """
 q_table = np.random.uniform(low=-2, high=0, size=(DISCRETE_OS_SIZE + [env.action_space.n]))
 
-#%% Definiendo función de desicretización
+#%% Definiendo función de discretización
 """
 Debido a que el espacio de estados es continuo, necesitamos una función para
 convertir los estados continuos a discretos
@@ -97,34 +97,44 @@ convertir los estados continuos a discretos
 def get_discrete_state(state):
     discrete_state = (state[0]-env.observation_space.low) / discrete_os_win_size
     return tuple(discrete_state.astype(int))
-# 
+# Inicializando una lista para guardar las recompensas por episodio
+ep_rewards = []
+
 for episode in range(EPISODES):
-    
+    episode_reward = 0
     discrete_state = get_discrete_state(env.reset())
     done = False
     while not done:
-        
         if np.random.random() > epsilon:
-            action = np.argmax(q_table[tuple(discrete_state)])
+            action = np.argmax(q_table[discrete_state])
         else:
             action = np.random.randint(0, env.action_space.n)
         observation, reward, done, _, _ = env.step(action)
-        
-        #new_state, reward, done, _ = env.step(action)
         new_discrete_state = get_discrete_state(observation)
         
-        max_future_q = np.max(q_table[tuple(new_discrete_state)])
-        current_q = q_table[tuple(discrete_state) + (action,)]
+        episode_reward += reward
+        
+        max_future_q = np.max(q_table[new_discrete_state])
+        current_q = q_table[discrete_state + (action,)]
         
         if not done:
             new_q = (1 - LEARNING_RATE) * current_q + LEARNING_RATE * (reward + DISCOUNT * max_future_q)
         else:
             new_q = reward
     
-        q_table[tuple(discrete_state) + (action,)] = new_q
+        q_table[discrete_state + (action,)] = new_q
         discrete_state = new_discrete_state
     
         if END_EPSILON_DECAYING >= episode >= START_EPSILON_DECAYING:
             epsilon -= epsilon_decay_value
-    env.close()
-#%%
+    
+    ep_rewards.append(episode_reward)
+
+env.close()
+
+# Graficando las recompensas
+plt.plot(range(EPISODES), ep_rewards)
+plt.xlabel('Episodios')
+plt.ylabel('Recompensa')
+plt.title('Recompensa por Episodio en el entorno CartPole')
+plt.show()
