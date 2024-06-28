@@ -64,13 +64,13 @@ watchlist = [(d_train, "train"), (d_val, "valid")]
 # entrenando el modelo
 model = xgboost.train(params, d_train, num_boost_round=2000, evals=watchlist, 
                       early_stopping_rounds=100, verbose_eval=10)
-# seleccionando la fila 83 de X_train y convirtiendola en DMatrix. Es decir, la preparamos para 
+# seleccionando la fila 83 de X_train y convirtiendola en DMatrix. Es decir, la preparamos para hacer predicciones
 data_for_prediction = xgboost.DMatrix(X_train.iloc[[83],:])
 # haciendo predicción utilizando el modelo entrenado
 model.predict(data_for_prediction)
 #%% Interpretación del modelo mediante 
 import shap 
-# creando objeto para interpretar las predicciones dle modelo
+# creando objeto para interpretar las predicciones del modelo
 explainer = shap.TreeExplainer(model)
 # calculando los valores shap para todas las observaciones en el conjunto de datos X_train
 shap_values = explainer.shap_values(X_train)
