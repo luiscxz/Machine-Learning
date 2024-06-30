@@ -2,9 +2,9 @@
 """
 Created on Fri Jun 28 10:47:49 2024
 
-@author: anboo
+@author: Luis A. García 
 """
-# importando liberías necesarias
+# importando librerías necesarias
 import os
 import pandas as pd
 #accediendo a ruta del archivo
@@ -19,7 +19,7 @@ y = wine_data['quality']
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import GridSearchCV
-# diviendo en entrenamiento y prueba
+# dividiendo en entrenamiento y prueba
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,random_state=42)
 # definiendo diccionario de parámetros 
 param_grid ={
@@ -53,5 +53,5 @@ modelR = LogisticRegression()
 modelR.fit(X_train,y_train)
 # realizando predicciones con el conjunto de prueba
 y_pred = modelR.predict(X_test)
-# obteniedo informe de clasificación
+# obteniendo informe de clasificación
 print(classification_report(y_test, y_pred))
