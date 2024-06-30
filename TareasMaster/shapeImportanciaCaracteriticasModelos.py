@@ -68,7 +68,7 @@ model = xgboost.train(params, d_train, num_boost_round=2000, evals=watchlist,
 data_for_prediction = xgboost.DMatrix(X_train.iloc[[83],:])
 # haciendo predicción utilizando el modelo entrenado
 model.predict(data_for_prediction)
-#%% Interpretación del modelo mediante 
+#%% Interpretación del modelo mediante shap
 import shap 
 # creando objeto para interpretar las predicciones del modelo
 explainer = shap.TreeExplainer(model)
@@ -79,3 +79,48 @@ shap.initjs()
 shap.summary_plot(shap_values, X_train)
 shap.summary_plot(shap_values, X_train, plot_type='bar')  # Puedes usar 'dot' en lugar de 'bar' si prefieres puntos
 plt.show()
+#%% Forceplot
+"""
+ realizando una predicción usando XGBoost y visualizando la importancia de las 
+ características en la predicción utilizando SHAP.
+"""
+data_for_prediction = xgboost.DMatrix(X_train.iloc[[10],:])  # use 1 row of data here. Could use multiple rows if desired
+print(f"The 85th data is predicted to be True's probability: {model.predict(data_for_prediction)}")
+shap.force_plot(explainer.expected_value, shap_values[10,:], X_train.iloc[10,:],matplotlib=True)
+plt.show()
+#%%
+data_for_prediction = xgboost.DMatrix(X_train.iloc[[83],:])  # use 1 row of data here. Could use multiple rows if desired
+print(f"The 83rd data is predicted to be True's probability: {model.predict(data_for_prediction)}")
+shap.force_plot(explainer.expected_value, shap_values[83,:], X_train.iloc[83,:],matplotlib=True)
+#%%
+"""
+mostrando la relación entre el logaritmo de las probabilidades de ganar y la probabilidad real de ganar
+"""
+plt.figure(figsize=(20,8))
+xs = np.linspace(-5,5,100)
+plt.xlabel("Log odds of winning")
+plt.ylabel("Probability of winning")
+plt.title("Log odds & prob of winning convert")
+plt.plot(xs, 1/(1+np.exp(-xs)))
+
+new_ticks = np.linspace(-5, 5, 11)
+plt.xticks(new_ticks)
+plt.show()
+#%%
+"""
+genera un gráfico de fuerza utilizando SHAP
+este código genera un gráfico que visualiza la contribución de cada característica
+en la predicción del modelo para los datos de entrenamiento X_train, utilizando 
+los valores SHAP calculados. Cada punto en el gráfico representa una instancia 
+de datos, y la posición horizontal indica el impacto de las características en 
+la predicción del modelo.
+"""
+shap.force_plot(explainer.expected_value, shap_values, X_train)
+#%%
+"""
+generando gráfico que visualiza cómo la variable 'Ball Possession %' impacta 
+en las predicciones del modelo, según los valores SHAP calculados. El gráfico 
+puede mostrar también cómo esta dependencia puede variar en función de la 
+interacción con la variable 'Goal Scored'.
+"""
+shap.dependence_plot('Ball Possession %', shap_values, X_train, interaction_index="Goal Scored")
