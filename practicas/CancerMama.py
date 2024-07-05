@@ -262,10 +262,77 @@ procedemos a identificar sus mejores parámetros
 svm_grid.best_params_
 #%% Volvemos a crear el modelo y esta vez lo corremos con los mejores parámetros
 mejores_params = {'degree': 2, 'gamma': 1.0, 'kernel': 'poly'}
-mejor_svm = SVC(**mejores_params,probability=True)
+mejor_svm = SVC(**mejores_params, probability=True)
 # entrenando el modelo
 mejor_svm.fit(independientes, objetivo)
 """ Continuar con la llegada de datos nuevos
 """
 #%% Procedemos a ver como influyen las características en las decisiones del modelo
-import shap
+from sklearn.inspection import permutation_importance
+import seaborn as sns
+result = permutation_importance(mejor_svm, independientes, objetivo, n_repeats=30, random_state=42, n_jobs=-1)
+# Preparar los datos para el gráfico
+sorted_idx = result.importances_mean.argsort()[::-1]  # Invertir el orden
+importances = result.importances_mean[sorted_idx]
+features = np.array(independientes.columns)[sorted_idx]
+
+# Crear el gráfico de importancias de características con barras
+plt.figure(figsize=(10, 6))
+sns.barplot(x=importances, y=features, palette='Spectral', edgecolor='k')
+
+# Ajustar los límites del eje x
+plt.xlim(-0.01, 0.025)
+
+# Añadir etiquetas y título
+plt.xlabel("Importancia (permutación)")
+plt.ylabel("Características")
+plt.title("Importancia de las características (SVM)")
+
+# Añadir línea vertical en el eje X
+plt.axvline(x=0, color='k', linestyle='--')
+
+# Añadir etiquetas de los valores
+for index, value in enumerate(importances):
+    plt.text(value, index, f'{value:.3f}', va='center') 
+    
+    
+# Crear un colorbar personalizado
+plt.show()
+#%% gráfico radiaL
+# Crear un gráfico radial
+angles = np.linspace(0, 2 * np.pi, len(features), endpoint=False).tolist()
+
+fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+ax.bar(angles, importances, width=0.4, align='edge')
+
+ax.set_xticks(angles)
+ax.set_xticklabels(features, fontsize=10)
+ax.yaxis.set_tick_params(labelsize=10)
+
+plt.title('Permutation Importance (Radial)', fontsize=15)
+plt.show()
+#%%
+import plotly.express as px
+# Crear un DataFrame para plotly
+df = pd.DataFrame({
+    'Feature': features,
+    'Importance': importances
+})
+
+# Crear el gráfico de pie con estilo similar
+fig = px.pie(df, values='Importance', names='Feature',
+             title='Permutation Importance (Pie Chart)',
+             hover_name='Feature',
+             hole=0.5,  # Agujero central
+             labels={'Feature': 'Feature', 'Importance': 'Importance'},
+             template='plotly',  # Estilo plotly
+            )
+
+# Añadir anotaciones para mostrar las etiquetas dentro de cada segmento
+fig.update_traces(textposition='inside', textinfo='percent+label')
+
+# Mostrar el gráfico en el navegador
+fig.show(renderer='browser')
+#fig.show()
+#%%
+importancia =arbol_grid.feature_importances_
