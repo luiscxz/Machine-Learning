@@ -7,6 +7,7 @@ Algoritmo que usa diferentes modelos para detectar cancer de mama
 # Importando librerias necesarias
 import os 
 import pandas as pd
+pd.set_option('future.no_silent_downcasting', True)
 import numpy as np
 import matplotlib.pyplot as plt
 # Accediendo a donde están los datos
@@ -16,20 +17,46 @@ file = pd.read_csv('Cancer_Data.csv')
 #eliminando columna vacía
 file =file.drop('Unnamed: 32',axis=1)
 #%% Explorando datos
-# buscando cuantos grupos tiene el dataframe segun la columba objetivo
-tiposCancer = file.groupby(by=['diagnosis'],dropna = False).agg(
-    Tipo=('diagnosis','count'),
-    Porcentaje = ('diagnosis',lambda x: (len(x)/len(file))*100)
-    ).reset_index()
+# consultado nombre de columnas, tipo y cantidad de registros no-null
+file.info()
+# realizando análisis de balanceo de clases
+tiposCancer = file.groupby(by = ['diagnosis']).agg(
+    # calculando la cantidad de clases
+    cantidad = ('diagnosis','count'),
+    # calculando el porcentaje que ocupa cada clase
+    porcentaje = ('diagnosis', lambda x: (len(x)/len(file))*100)
+).reset_index()
 """ Dado que:
     Registros de cancer B = 62,74%
     Registros de cancer M = 37.25%
     Se observa que las etiquetas estan desbalanceadas 
 """
-# buscando filas con valores faltantes
-filasNull = file[file.isnull().any(axis=1)]
+# Grafincando las clases y sus porcentajes
+fig, ax = plt.subplots(figsize=(8, 3)) 
+
+# Creando gráfica de barras horizontal
+bars = ax.barh(tiposCancer['diagnosis'], tiposCancer['cantidad'], color=['#00bfff', '#ff7f7f'],height=0.5)
+# Añadir el texto en las barras
+for bar, porcentaje in zip(bars, tiposCancer['porcentaje']):
+    ax.text(bar.get_width() + 5, bar.get_y() + bar.get_height()/2, 
+            f'{porcentaje:.2f}%', va='center', ha='left')
+
+# Mejorar la apariencia general
+ax.set_title("Distribución de Clases", fontsize=16, weight='bold')
+ax.set_xlabel("Número de Casos", fontsize=12)
+ax.set_ylabel("Clase", fontsize=12)
+ax.set_xlim(0, 500)  # Ajuste de los límites en el eje x
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.set_yticks(range(len(tiposCancer['diagnosis'])))
+ax.set_yticklabels(tiposCancer['diagnosis'], fontsize=12)
+
+# Ajustar el espaciado entre las barras
+plt.subplots_adjust(left=0.15, right=0.85, top=0.50, bottom=0.15)
+
 #-- Realizando diagrama de cajas y bigotes 
 columnas =file.columns.to_list()
+fig = plt.subplots(figsize=(15, 3)) 
 boxplotChl = file.boxplot(column= columnas[2:31],
                     medianprops=dict(linestyle='-', linewidth=2, color='red'),
                     boxprops=dict(linewidth=2, color='blue'),
@@ -37,8 +64,8 @@ boxplotChl = file.boxplot(column= columnas[2:31],
                     flierprops=dict(marker='o', markersize=5, markerfacecolor='red', markeredgecolor='red'),
                     capprops=dict(linewidth=3, color='black'))
 # Personalizando ejes
-boxplotChl.set_xlabel('Variables', fontsize=20, fontweight='bold', labelpad=2)
-boxplotChl.set_ylabel('medidas', fontsize=20, fontweight='bold')
+boxplotChl.set_xlabel('Características', fontsize=20, fontweight='bold', labelpad=2)
+boxplotChl.set_ylabel('Valores', fontsize=20, fontweight='bold')
 boxplotChl.set_title('Diagramas de cajas y bigotes', fontsize=20, fontweight='bold')
 boxplotChl.spines['top'].set_linewidth(1)  # Grosor del borde superior
 boxplotChl.spines['right'].set_linewidth(1)  # Grosor del borde derecho
@@ -47,6 +74,7 @@ boxplotChl.spines['left'].set_linewidth(1)  # Grosor del borde izquierdo
 boxplotChl.tick_params(axis='both', direction='out', length=6)  # Dirección y longitud de los ticks
 boxplotChl.xaxis.set_tick_params(width=2)  # Grosor de los ticks en el eje X
 boxplotChl.yaxis.set_tick_params(width=2)  # Grosor de los ticks en el eje Y
+_=boxplotChl.set_xticklabels(boxplotChl.get_xticklabels(), rotation=90, fontsize=12)
 """ Con el diagrama de cajas se pudo observar los siguiente:
     area_mean: 0 hasta 2500
     area_se: 0 hasta 520
@@ -54,32 +82,53 @@ boxplotChl.yaxis.set_tick_params(width=2)  # Grosor de los ticks en el eje Y
     Lo que indica que estas columnas generan más peso, entonces debemos
     probar normalizando o estandarizando 
 """
+#%% Extracción de una muestra
+from sklearn.model_selection import train_test_split
+# definiendo tamaño de muestra igual al 1%
+sample_size = 0.01
+data, muestra = train_test_split(
+    file, 
+    test_size=sample_size, 
+    stratify=file['diagnosis'], 
+    random_state=42
+)
+# reseteando index para la muestra y lo datos que serán para entrenamiento y validación
+muestra= muestra.reset_index(drop=True)
+data = data.reset_index(drop=True)
 #%% Normalización o estandarización de los datos
 from sklearn import preprocessing
 # Separando en variables dependientes e independientes
-objetivo = file['diagnosis']
-independientes = file.loc[:,~file.columns.isin({'id','diagnosis'})]
+objetivo = data['diagnosis']
+independientes = data.loc[:,~data.columns.isin({'id','diagnosis'})]
 # conservando nombre de las columnas del df independientes
-columnas_ind = independientes.columns
-# convirtiendo dataframe a array
-independientes = np.array(independientes)
-# Creando escalador
+col_ind = independientes.columns
+# creando escalador para normalizar los datos 
 normalizador = preprocessing.MinMaxScaler()
-# Normalizando  con MinMax: resta el minimo y divide entre (max-min)
-independientes = normalizador.fit_transform(independientes)
-# convirtiendo a dataframe
-independientes = pd.DataFrame(independientes,
-                              columns=columnas_ind)
-# Graficando boxplot para datrafame normalizado
-boxplotChl = independientes.boxplot(column= columnas[2:31],
+# normalizando con MinMax: a cada columna le resta su respectivo minimo y divide entre su respectivo (max-min)
+independientes = pd.DataFrame(normalizador.fit_transform(independientes),
+                              columns=col_ind)
+fig = plt.subplots(figsize=(15, 3)) 
+boxplotChl = independientes.boxplot(column= col_ind.to_list(),
                     medianprops=dict(linestyle='-', linewidth=2, color='red'),
                     boxprops=dict(linewidth=2, color='blue'),
                     whiskerprops=dict(linewidth=2, color='black'),
                     flierprops=dict(marker='o', markersize=5, markerfacecolor='red', markeredgecolor='red'),
                     capprops=dict(linewidth=3, color='black'))
-boxplotChl.set_title('Datos normalizados', fontsize=20, fontweight='bold')
+# Personalizando ejes
+boxplotChl.set_xlabel('Características', fontsize=20, fontweight='bold', labelpad=2)
+boxplotChl.set_ylabel('Valores normalizados', fontsize=18, fontweight='bold')
+boxplotChl.set_title('Diagramas de cajas y bigotes', fontsize=20, fontweight='bold')
+boxplotChl.spines['top'].set_linewidth(1)  # Grosor del borde superior
+boxplotChl.spines['right'].set_linewidth(1)  # Grosor del borde derecho
+boxplotChl.spines['bottom'].set_linewidth(1)  # Grosor del borde inferior
+boxplotChl.spines['left'].set_linewidth(1)  # Grosor del borde izquierdo
+boxplotChl.tick_params(axis='both', direction='out', length=6)  # Dirección y longitud de los ticks
+boxplotChl.xaxis.set_tick_params(width=2)  # Grosor de los ticks en el eje X
+boxplotChl.yaxis.set_tick_params(width=2)  # Grosor de los ticks en el eje Y
+_=boxplotChl.set_xticklabels(boxplotChl.get_xticklabels(), rotation=90, fontsize=7)
 # Procedemos a codificar las variables Categoricas de forma manual
 objetivo = objetivo.replace({'M':1,'B':0})
+objetivo = objetivo.astype(int)
 #%%  Definimos los hyperparatros
 """
 Usaré los modelos: 
@@ -113,11 +162,44 @@ parametros_arbol = {
     "class_weight": [None,"balanced"]
     }
 
+parametros_logistica = [
+    {
+        "penalty": ["l1"],
+        "C": [0.1, 1, 10],
+        "max_iter": [3000, 5000, 8000],
+        "solver": ["liblinear"],
+        "class_weight": [None, "balanced"]
+    },
+    {
+        "penalty": ["l2"],
+        "C": [0.1, 1, 10],
+        "max_iter": [3000, 5000, 8000],
+        "solver": ["liblinear", "newton-cg", "sag", "lbfgs"],
+        "class_weight": [None, "balanced"]
+    },
+    {
+        "penalty": ["elasticnet"],
+        "C": [0.1, 1, 10],
+        "max_iter": [3000, 5000, 8000],
+        "solver": ["saga"],
+        "class_weight": [None, "balanced"],
+        "l1_ratio": [0.1, 0.5, 0.9]  # Requerido para elasticnet
+    }
+]
+
 parametros_busqueda_svm = {
     "degree": [1,2,3,4],
     "gamma": [0.1,0.5,1.,10.],
     "kernel": ["poly", "rbf"]}
 
+parametros_xgboost= {
+    "max_depth": list(range(3, 7)),  
+    "learning_rate": [0.05, 0.1],   
+    "n_estimators": [100, 200],     
+    "gamma": [0, 0.1],              
+    "reg_alpha": [0, 0.1],       
+    "reg_lambda": [1],              
+}
 """ Nota: El árbol aleatorio no se le hace optimización de hiperparámetros
 """
 #%% Escribimos las funciones de evalución de los modelos y visualización de resultados
@@ -137,7 +219,7 @@ def evaluar_modelo(estimador, independientes, objetivo):
     Returns
     -------
     resultados_estimador : Puntuación F1 Score
-        Devuelve las metricas calculadas.
+        Devuelve las métricas calculadas.
     """
     resultados_estimador = cross_validate(estimador, independientes, objetivo,
                      scoring="f1_macro", n_jobs=-1, cv=10)
@@ -149,11 +231,14 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn import tree
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
+import xgboost
 # Definiendo modelos 
 estimador_knn = KNeighborsClassifier()
 estimador_svm = SVC()
 estimador_arbol = tree.DecisionTreeClassifier()
 estimador_arbol_aleatorio = tree.ExtraTreeClassifier()
+estimador_log_reg = LogisticRegression()
+estimador_xgboost = xgboost.XGBClassifier(eval_metric='logloss')
 """ Creando modelos para busqueda aleatoria, que encuentra la mejor combinación
 de estos parámetros. Internamente RandomizedSearchCV divide los datos en múltiples
 pliegues de entrenamiento y validación. Genera combinaciones aleatorias, y para 
@@ -174,6 +259,15 @@ svm_gauss_Random = RandomizedSearchCV(estimator=estimador_svm,
 arbol_Random = RandomizedSearchCV(estimator=estimador_arbol, 
                     param_distributions=parametros_arbol,
                     scoring="f1_macro", n_jobs=-1,n_iter=4)
+
+log_reg_Random = RandomizedSearchCV(estimator=estimador_log_reg, 
+                    param_distributions=parametros_logistica,
+                    scoring="f1_macro", n_jobs=-1, n_iter=4)
+
+xgboost_Random = RandomizedSearchCV(estimator=estimador_xgboost, 
+                    param_distributions=parametros_xgboost,
+                    scoring="f1_macro", n_jobs=-1, n_iter=4)
+
 #%% Definiendo modelos para busqueda por malla
 knn_grid = GridSearchCV(estimator=estimador_knn, 
                     param_grid=parametros_knn,
@@ -185,6 +279,14 @@ svm_grid = GridSearchCV(estimator=estimador_svm,
 
 arbol_grid = GridSearchCV(estimator=estimador_arbol, 
                     param_grid=parametros_arbol,
+                    scoring="f1_macro", n_jobs=-1)
+
+log_reg_grid = GridSearchCV(estimator=estimador_log_reg, 
+                    param_grid=parametros_logistica,
+                    scoring="f1_macro", n_jobs=-1)
+
+xgboost_grid = GridSearchCV(estimator=estimador_xgboost, 
+                    param_grid=parametros_xgboost,
                     scoring="f1_macro", n_jobs=-1)
 #%% Ajustando los modelos
 """
@@ -198,11 +300,14 @@ knn_Random.fit(independientes, objetivo)
 svm_poly_Random.fit(independientes, objetivo)
 svm_gauss_Random.fit(independientes, objetivo)
 arbol_Random.fit(independientes, objetivo)
+log_reg_Random.fit(independientes, objetivo)
+xgboost_Random.fit(independientes, objetivo)
 # ajustando modelos por busqueda en malla
 knn_grid.fit(independientes, objetivo)
 svm_grid.fit(independientes, objetivo)
 arbol_grid.fit(independientes, objetivo)
-
+log_reg_grid.fit(independientes, objetivo)
+xgboost_grid.fit(independientes, objetivo)
 #%% Obtención de resultados apartir del mejor estimador y haciendo validación cruzada
 
 resultados = {}
@@ -216,6 +321,15 @@ resultados["svm_grid"] = evaluar_modelo(svm_grid.best_estimator_,
 resultados["arbol_grid"] = evaluar_modelo(arbol_grid.best_estimator_,
                                    independientes,
                                    objetivo)
+
+resultados["log_reg_grid"] = evaluar_modelo(log_reg_grid.best_estimator_,
+                                   independientes,
+                                   objetivo)
+resultados["xgboost_grid"] = evaluar_modelo(xgboost_grid.best_estimator_,
+                                   independientes,
+                                   objetivo)
+
+
 # sección busqueda aleatoria
 resultados["knn_ramdon"] = evaluar_modelo(knn_Random.best_estimator_,
                                    independientes,
@@ -229,28 +343,38 @@ resultados["svm_gauss_Random"] = evaluar_modelo(svm_gauss_Random.best_estimator_
 resultados["arbol_Random"] = evaluar_modelo(arbol_Random.best_estimator_,
                                    independientes,
                                    objetivo)
+resultados["log_reg_Random"] = evaluar_modelo(log_reg_Random.best_estimator_,
+                                   independientes,
+                                   objetivo)
+resultados["xgboost_Random"] = evaluar_modelo(xgboost_Random.best_estimator_,
+                                   independientes,
+                                   objetivo)
+
 resultados["arbol_aleatorio"] = evaluar_modelo(estimador_arbol_aleatorio,
                                                independientes,
                                                objetivo)
 #%%# definiendo función que muestra los resultados 
 def ver_resultados(resultados):
-    # procedemos a convertir el diccionario a un dataframe
+    # Convertir el diccionario de resultados en un DataFrame y transponerlo
     resultados_df = pd.DataFrame(resultados).T
-    # obteniendo nombre de las columnas
-    resultados_col = resultados_df.columns
-    # procedemos recorrer las columnas mediante ciclo for
-    for col in resultados_df:# Col toma los nombres de las columnas
-        """ Dado que cada fila de cada columna contiene la información en 
-        el siguiente formato:[0.00399971 0.00400662 0.00399971 0.00399923 0.00400662]
-        se procede a cálcular el promedio de estos valores en la fila y todos estos valores
-        se reemplazan por un unico valor (el valor promedio)
+    # Iterar sobre cada columna del DataFrame
+    for col in resultados_df:
+        """
+        Cada fila de la columna contiene una lista de valores, por ejemplo:
+        [0.00399971, 0.00400662, 0.00399971, 0.00399923, 0.00400662]
+        Para simplificar, se calcula el promedio de los valores en cada fila
+        y se reemplaza la lista con este valor promedio.
         """
         resultados_df[col] = resultados_df[col].apply(np.mean)
-        """ a cada columna se le consulta el valor máximo, y cada fila de esa
-        columna, se divide por el valor maximo. Esto se hace para normalizar los
-        datos de las columnas
+        
         """
-        resultados_df[col+"_idx"] = resultados_df[col] / resultados_df[col].max()       
+        Normalizar los valores de la columna dividiendo cada valor por el máximo 
+        valor en la columna. Esto permite escalar los datos entre 0 y 1, 
+        facilitando la comparación entre modelos.
+        """
+        resultados_df[col + "_idx"] = resultados_df[col] / resultados_df[col].max()
+    
+    # Devolver el DataFrame procesado con los resultados y las columnas normalizadas
     return resultados_df
 #%% observando los resultados
 resultados_df= ver_resultados(resultados)
@@ -259,45 +383,56 @@ resultados_df = resultados_df.sort_values(by=['test_score', 'fit_time'], ascendi
 """ una vez observado e identificado el modelo con mejor puntuación f1_score,
 procedemos a identificar sus mejores parámetros
 """
-svm_grid.best_params_
+log_reg_grid.best_params_
+mejores_params = log_reg_grid.best_params_
 #%% Volvemos a crear el modelo y esta vez lo corremos con los mejores parámetros
-mejores_params = {'degree': 2, 'gamma': 1.0, 'kernel': 'poly'}
-mejor_svm = SVC(**mejores_params, probability=True)
+mejorModelo = LogisticRegression(**mejores_params)
 # entrenando el modelo
-mejor_svm.fit(independientes, objetivo)
-""" Continuar con la llegada de datos nuevos
-"""
+mejorModelo.fit(independientes, objetivo)
+#%% Evaluando el rendimiento final del modelo con la muestra
+# separando en variables independietes y objetivo
+MIndependiente = muestra.loc[:,~muestra.columns.isin({'id','diagnosis'})]
+Mobjetivo = muestra['diagnosis']
+# normalizando los datos con el escalor creado para normalizar
+MIndependiente = pd.DataFrame(normalizador.transform(MIndependiente), columns=col_ind)
+# codificando variables
+Mobjetivo = Mobjetivo.replace({'M':1,'B':0})
+# convirtiendo columna a tipo int
+Mobjetivo = Mobjetivo.astype(int)
+
+# Evalúa el modelo con el 1% de los datos separados y normalizados
+y_pred = mejorModelo.predict(MIndependiente)
+#%% Calcuando métricas de evaluación final
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
+accuracy = accuracy_score(Mobjetivo, y_pred)
+f1 = f1_score(Mobjetivo, y_pred, average='weighted')  # Cambia a 'macro' o 'micro' según sea necesario
+conf_matrix = confusion_matrix(Mobjetivo, y_pred)
+# obtenindo reporte
+print(classification_report(Mobjetivo, y_pred))
+
 #%% Procedemos a ver como influyen las características en las decisiones del modelo
 from sklearn.inspection import permutation_importance
 import seaborn as sns
-result = permutation_importance(mejor_svm, independientes, objetivo, n_repeats=30, random_state=42, n_jobs=-1)
+result = permutation_importance(mejorModelo, independientes, objetivo, n_repeats=30, random_state=42, n_jobs=-1)
 # Preparar los datos para el gráfico
 sorted_idx = result.importances_mean.argsort()[::-1]  # Invertir el orden
 importances = result.importances_mean[sorted_idx]
 features = np.array(independientes.columns)[sorted_idx]
-
-# Crear el gráfico de importancias de características con barras
-plt.figure(figsize=(10, 6))
-sns.barplot(x=importances, y=features, palette='Spectral', edgecolor='k')
-
-# Ajustar los límites del eje x
-plt.xlim(-0.01, 0.025)
-
-# Añadir etiquetas y título
+# graficando
+plt.figure(figsize=(10, 6),dpi=200)
+sns.barplot(x=importances, y=features, hue=features, palette='Set1', edgecolor='k', legend=False)
+plt.xlim(-0.001, 0.045)
 plt.xlabel("Importancia (permutación)")
 plt.ylabel("Características")
-plt.title("Importancia de las características (SVM)")
-
+plt.title("Importancia de las características")
 # Añadir línea vertical en el eje X
 plt.axvline(x=0, color='k', linestyle='--')
-
-# Añadir etiquetas de los valores
 for index, value in enumerate(importances):
-    plt.text(value, index, f'{value:.3f}', va='center') 
-    
-    
-# Crear un colorbar personalizado
-plt.show()
+    plt.text(value + 0.001, index, f'{value:.3f}', va='center', fontsize=10)
+
+# Mejorar la visualización
+plt.grid(True, axis='x', linestyle='--', alpha=0.7)
+plt.tight_layout()
 #%% gráfico radiaL
 # Crear un gráfico radial
 angles = np.linspace(0, 2 * np.pi, len(features), endpoint=False).tolist()
@@ -334,5 +469,42 @@ fig.update_traces(textposition='inside', textinfo='percent+label')
 # Mostrar el gráfico en el navegador
 fig.show(renderer='browser')
 #fig.show()
+#%% Guardando modelo
+import pickle
+""" 
+abriendo archivo modelo_pca.pickle en modo de escritura binara "wb" y 
+Serializando el objeto modelo_pca y escribiendo en el archivo abierto.
+"""
+ruta = 'D:\\15. Notas de clase\\EjmplosML'
+# Guardando los datos del modelo de normalización
+with open(ruta+"\\Normalizador.pickle", "wb") as file:
+    pickle.dump(normalizador , file)
+# procedemos a guardar el mejor modelo
+with open (ruta+"\\modeloRegresionLogistica.pickle", "wb") as file:
+    pickle.dump(mejorModelo, file)
+#%% Abriendo modelo
+import os
+import pickle
+os.chdir('D:\\15. Notas de clase\\EjmplosML')
+# leyendo modelo de normalización
+with open('Normalizador.pickle','rb') as file:
+    modeloPREPROCESAMIENTO = pickle.load(file)
+# leyendo modelo de clasificación
+with open('modeloRegresionLogistica.pickle','rb') as file:
+    mejorMODELO = pickle.load(file)
 #%%
-importancia =arbol_grid.feature_importances_
+import pandas as pd
+os.chdir('D:\\3. Cursos\\9. Data machine learning\\CancerDeMama')
+dfNuevo = pd.read_csv('cancemamadf.csv')
+# separando en variables idependientes y objetivo
+dfNuevoindependiente = dfNuevo.loc[:,~dfNuevo.columns.isin({'id','diagnosis','Unnamed: 32'})]
+dfNuevoobjetivo = dfNuevo['diagnosis']
+# transformando(normalizando) datos
+nuevoDATA = pd.DataFrame(modeloPREPROCESAMIENTO.transform(dfNuevoindependiente),
+                         columns=dfNuevoindependiente.columns.to_list())
+
+# obteniendo prediciones del modelo 
+predicciones=mejorMODELO.predict(nuevoDATA)
+resultados_mapeados = ['M' if pred == 1 else 'B' for pred in predicciones]
+
+print(resultados_mapeados)
